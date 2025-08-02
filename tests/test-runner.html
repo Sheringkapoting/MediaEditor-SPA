@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WatermarkPro Test Suite</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-header {
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .test-suite {
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .test-suite-header {
+            background: #343a40;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+        }
+        .test-case {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .test-case:last-child {
+            border-bottom: none;
+        }
+        .test-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+        .test-pass {
+            background: #d4edda;
+            color: #155724;
+        }
+        .test-fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .test-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .test-summary {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+        .run-tests-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .run-tests-btn:hover {
+            background: #0056b3;
+        }
+        .error-details {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 5px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 WatermarkPro Test Suite</h1>
+            <p>Comprehensive testing for all application components</p>
+            <button class="run-tests-btn" onclick="runAllTests()">Run All Tests</button>
+        </div>
+
+        <div id="test-results">
+            <!-- Test results will be populated here -->
+        </div>
+
+        <div class="test-summary" id="test-summary" style="display: none;">
+            <h3>Test Summary</h3>
+            <div class="summary-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-tests">0</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="passed-tests">0</div>
+                    <div class="stat-label">Passed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="failed-tests">0</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="test-time">0</div>
+                    <div class="stat-label">Time (ms)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include source files -->
+    <script src="../js/utils.js"></script>
+    <script src="../js/imageProcessor.js"></script>
+    <script src="../js/watermarkEngine.js"></script>
+    <script src="../js/batchProcessor.js"></script>
+    <script src="../js/templateManager.js"></script>
+
+    <!-- Include test files -->
+    <script src="imageProcessor.test.js"></script>
+    <script src="watermarkEngine.test.js"></script>
+    <script src="batchProcessor.test.js"></script>
+    <script src="templateManager.test.js"></script>
+    <script src="utils.test.js"></script>
+
+    <script>
+        // Simple test framework
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.currentSuite = null;
+            }
+
+            describe(suiteName, callback) {
+                this.currentSuite = {
+                    name: suiteName,
+                    tests: []
+                };
+                callback();
+                this.tests.push(this.currentSuite);
+                this.currentSuite = null;
+            }
+
+            it(testName, callback) {
+                if (this.currentSuite) {
+                    this.currentSuite.tests.push({
+                        name: testName,
+                        callback: callback,
+                        status: 'pending',
+                        error: null,
+                        duration: 0
+                    });
+                }
+            }
+
+            async runAll() {
+                this.results = [];
+                const startTime = Date.now();
+
+                for (const suite of this.tests) {
+                    for (const test of suite.tests) {
+                        const testStartTime = Date.now();
+                        try {
+                            await test.callback();
+                            test.status = 'pass';
+                        } catch (error) {
+                            test.status = 'fail';
+                            test.error = error.message;
+                        }
+                        test.duration = Date.now() - testStartTime;
+                    }
+                }
+
+                const totalTime = Date.now() - startTime;
+                this.displayResults(totalTime);
+            }
+
+            displayResults(totalTime) {
+                const container = document.getElementById('test-results');
+                const summary = document.getElementById('test-summary');
+                
+                let totalTests = 0;
+                let passedTests = 0;
+                let failedTests = 0;
+
+                let html = '';
+
+                for (const suite of this.tests) {
+                    html += `
+                        <div class="test-suite">
+                            <div class="test-suite-header">${suite.name}</div>
+                    `;
+
+                    for (const test of suite.tests) {
+                        totalTests++;
+                        if (test.status === 'pass') passedTests++;
+                        if (test.status === 'fail') failedTests++;
+
+                        html += `
+                            <div class="test-case">
+                                <div>
+                                    <strong>${test.name}</strong>
+                                    ${test.error ? `<div class="error-details">${test.error}</div>` : ''}
+                                </div>
+                                <div class="test-status test-${test.status}">
+                                    ${test.status.toUpperCase()} (${test.duration}ms)
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
+
+                // Update summary
+                document.getElementById('total-tests').textContent = totalTests;
+                document.getElementById('passed-tests').textContent = passedTests;
+                document.getElementById('failed-tests').textContent = failedTests;
+                document.getElementById('test-time').textContent = totalTime;
+                summary.style.display = 'block';
+            }
+
+            expect(actual) {
+                return {
+                    toBe: (expected) => {
+                        if (actual !== expected) {
+                            throw new Error(`Expected ${expected}, but got ${actual}`);
+                        }
+                    },
+                    toEqual: (expected) => {
+                        if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                            throw new Error(`Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(actual)}`);
+                        }
+                    },
+                    toBeTruthy: () => {
+                        if (!actual) {
+                            throw new Error(`Expected truthy value, but got ${actual}`);
+                        }
+                    },
+                    toBeFalsy: () => {
+                        if (actual) {
+                            throw new Error(`Expected falsy value, but got ${actual}`);
+                        }
+                    },
+                    toThrow: () => {
+                        let threw = false;
+                        try {
+                            actual();
+                        } catch (e) {
+                            threw = true;
+                        }
+                        if (!threw) {
+                            throw new Error('Expected function to throw an error');
+                        }
+                    }
+                };
+            }
+        }
+
+        // Global test runner instance
+        const testRunner = new TestRunner();
+        const describe = testRunner.describe.bind(testRunner);
+        const it = testRunner.it.bind(testRunner);
+        const expect = testRunner.expect.bind(testRunner);
+
+        async function runAllTests() {
+            await testRunner.runAll();
+        }
+
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

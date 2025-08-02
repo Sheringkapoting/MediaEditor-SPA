@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WatermarkPro - Custom Integration Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .integration {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        .code {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            margin: 15px 0;
+        }
+        .framework {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+            background: #f8f9fa;
+        }
+        .api-endpoint {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        h1, h2, h3 { color: #2d3748; }
+        .note { background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔧 WatermarkPro - Custom Integration Guide</h1>
+    
+    <p>Learn how to integrate WatermarkPro into various web applications, frameworks, and custom workflows.</p>
+
+    <div class="integration">
+        <h2>🚀 Quick Start Integration</h2>
+        <p>Get WatermarkPro running in your existing application in under 5 minutes.</p>
+    </div>
+
+    <h2>1. React Integration</h2>
+    <div class="framework">
+        <h3>React Component</h3>
+        <div class="code">
+import React, { useState, useRef } from 'react';
+
+// Import WatermarkPro classes (assuming they're available globally or via modules)
+const WatermarkComponent = () => {
+    const [processing, setProcessing] = useState(false);
+    const [result, setResult] = useState(null);
+    const [progress, setProgress] = useState(0);
+    const fileInputRef = useRef(null);
+    
+    const imageProcessor = useRef(new ImageProcessor());
+    const watermarkEngine = useRef(new WatermarkEngine());
+    const batchProcessor = useRef(new BatchProcessor());
+
+    const handleFileSelect = async (files) => {
+        if (!files.length) return;
+        
+        setProcessing(true);
+        try {
+            const sourceImages = [];
+            
+            for (const file of files) {
+                const imageData = await imageProcessor.current.loadImage(file);
+                sourceImages.push({
+                    id: Date.now() + Math.random(),
+                    name: file.name,
+                    size: file.size,
+                    imageData
+                });
+            }
+            
+            const settings = {
+                type: 'text',
+                text: {
+                    content: '© React App 2025',
+                    font: 'Arial',
+                    size: 48,
+                    color: '#ffffff',
+                    opacity: 80
+                },
+                position: { preset: 'bottom-right', x: -30, y: -30 },
+                output: { format: 'png', quality: 95 }
+            };
+            
+            // Set up progress tracking
+            batchProcessor.current.setProgressCallback(({ percent }) => {
+                setProgress(percent);
+            });
+            
+            // Process images
+            batchProcessor.current.addToQueue(sourceImages, settings);
+            const results = await batchProcessor.current.processQueue();
+            
+            setResult(results);
+            
+        } catch (error) {
+            console.error('Watermarking failed:', error);
+            alert('Error: ' + error.message);
+        } finally {
+            setProcessing(false);
+            setProgress(0);
+        }
+    };
+
+    return (
+        &lt;div className="watermark-component"&gt;
+            &lt;input
+                type="file"
+                ref={fileInputRef}
+                multiple
+                accept="image/*"
+                onChange={(e) => handleFileSelect(Array.from(e.target.files))}
+                style={{ display: 'none' }}
+            /&gt;
+            
+            &lt;button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={processing}
+                className="upload-btn"
+            &gt;
+                {processing ? 'Processing...' : 'Select Images'}
+            &lt;/button&gt;
+            
+            {processing && (
+                &lt;div className="progress-bar"&gt;
+                    &lt;div 
+                        className="progress-fill" 
+                        style={{ width: `${progress}%` }}
+                    &gt;&lt;/div&gt;
+                    &lt;span&gt;{progress}%&lt;/span&gt;
+                &lt;/div&gt;
+            )}
+            
+            {result && (
+                &lt;div className="results"&gt;
+                    &lt;h3&gt;Results: {result.completed} processed successfully&lt;/h3&gt;
+                    {result.results.map((img, index) => (
+                        &lt;div key={index} className="result-item"&gt;
+                            &lt;img src={img.dataUrl} alt={img.name} style={{ maxWidth: '200px' }} /&gt;
+                            &lt;button onClick={() => downloadImage(img)}&gt;
+                                Download {img.name}
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                    ))}
+                &lt;/div&gt;
+            )}
+        &lt;/div&gt;
+    );
+};
+
+const downloadImage = (imageResult) => {
+    const link = document.createElement('a');
+    link.download = imageResult.name;
+    link.href = imageResult.dataUrl;
+    link.click();
+};
+
+export default WatermarkComponent;
+        </div>
+    </div>
+
+    <h2>2. Vue.js Integration</h2>
+    <div class="framework">
+        <h3>Vue Component</h3>
+        <div class="code">
+&lt;template&gt;
+  &lt;div class="watermark-vue-component"&gt;
+    &lt;div class="upload-zone" @drop="handleDrop" @dragover.prevent&gt;
+      &lt;input
+        ref="fileInput"
+        type="file"
+        multiple
+        accept="image/*"
+        @change="handleFileSelect"
+        style="display: none"
+      /&gt;
+      
+      &lt;button @click="$refs.fileInput.click()" :disabled="processing"&gt;
+        {{ processing ? 'Processing...' : 'Upload Images' }}
+      &lt;/button&gt;
+      
+      &lt;p&gt;Or drag and drop images here&lt;/p&gt;
+    &lt;/div&gt;
+    
+    &lt;div v-if="processing" class="progress-section"&gt;
+      &lt;div class="progress-bar"&gt;
+        &lt;div class="progress-fill" :style="{ width: progress + '%' }"&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;p&gt;{{ progressMessage }}&lt;/p&gt;
+    &lt;/div&gt;
+    
+    &lt;div v-if="results.length" class="results-grid"&gt;
+      &lt;div v-for="result in results" :key="result.id" class="result-card"&gt;
+        &lt;img :src="result.dataUrl" :alt="result.name" /&gt;
+        &lt;button @click="downloadResult(result)"&gt;Download&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export default {
+  name: 'WatermarkVueComponent',
+  data() {
+    return {
+      processing: false,
+      progress: 0,
+      progressMessage: '',
+      results: [],
+      imageProcessor: null,
+      watermarkEngine: null,
+      batchProcessor: null
+    };
+  },
+  
+  mounted() {
+    this.imageProcessor = new ImageProcessor();
+    this.watermarkEngine = new WatermarkEngine();
+    this.batchProcessor = new BatchProcessor();
+    
+    // Setup progress callback
+    this.batchProcessor.setProgressCallback((data) => {
+      this.progress = data.percent;
+      this.progressMessage = data.message;
+    });
+  },
+  
+  methods: {
+    async handleFileSelect(event) {
+      const files = Array.from(event.target.files);
+      await this.processFiles(files);
+    },
+    
+    async handleDrop(event) {
+      event.preventDefault();
+      const files = Array.from(event.dataTransfer.files);
+      await this.processFiles(files);
+    },
+    
+    async processFiles(files) {
+      if (!files.length) return;
+      
+      this.processing = true;
+      this.results = [];
+      
+      try {
+        const sourceImages = [];
+        
+        for (const file of files) {
+          const imageData = await this.imageProcessor.loadImage(file);
+          sourceImages.push({
+            id: Date.now() + Math.random(),
+            name: file.name,
+            size: file.size,
+            imageData
+          });
+        }
+        
+        const settings = {
+          type: 'text',
+          text: {
+            content: '© Vue.js App',
+            font: 'Arial',
+            size: 36,
+            color: '#42b883',
+            opacity: 85
+          },
+          position: { preset: 'bottom-center', x: 0, y: -40 },
+          output: { format: 'png', quality: 95 }
+        };
+        
+        this.batchProcessor.addToQueue(sourceImages, settings);
+        const processResult = await this.batchProcessor.processQueue();
+        
+        this.results = processResult.results;
+        
+      } catch (error) {
+        console.error('Processing failed:', error);
+        this.$emit('error', error.message);
+      } finally {
+        this.processing = false;
+        this.progress = 0;
+        this.progressMessage = '';
+      }
+    },
+    
+    downloadResult(result) {
+      const link = document.createElement('a');
+      link.download = result.name;
+      link.href = result.dataUrl;
+      link.click();
+    }
+  }
+};
+&lt;/script&gt;
+        </div>
+    </div>
+
+    <h2>3. Node.js Backend Integration</h2>
+    <div class="framework">
+        <h3>Express.js API Endpoint</h3>
+        <div class="code">
+const express = require('express');
+const multer = require('multer');
+const { createCanvas, loadImage } = require('canvas');
+const fs = require('fs').promises;
+
+const app = express();
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Watermark API endpoint
+app.post('/api/watermark', upload.array('images'), async (req, res) => {
+    try {
+        const { watermarkText, position, opacity } = req.body;
+        const results = [];
+        
+        for (const file of req.files) {
+            // Load image
+            const image = await loadImage(file.buffer);
+            
+            // Create canvas
+            const canvas = createCanvas(image.width, image.height);
+            const ctx = canvas.getContext('2d');
+            
+            // Draw original image
+            ctx.drawImage(image, 0, 0);
+            
+            // Apply watermark
+            ctx.font = '48px Arial';
+            ctx.fillStyle = `rgba(255, 255, 255, ${opacity / 100})`;
+            ctx.textAlign = 'center';
+            
+            const x = position === 'center' ? image.width / 2 : image.width - 100;
+            const y = position === 'center' ? image.height / 2 : image.height - 50;
+            
+            ctx.fillText(watermarkText, x, y);
+            
+            // Convert to buffer
+            const buffer = canvas.toBuffer('image/png');
+            
+            results.push({
+                originalName: file.originalname,
+                processedImage: buffer.toString('base64'),
+                size: buffer.length
+            });
+        }
+        
+        res.json({
+            success: true,
+            processed: results.length,
+            results: results
+        });
+        
+    } catch (error) {
+        console.error('Watermarking failed:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Batch processing endpoint
+app.post('/api/batch-watermark', upload.array('images'), async (req, res) => {
+    try {
+        const { settings } = req.body;
+        const settingsObj = JSON.parse(settings);
+        
+        // Process files in parallel
+        const processPromises = req.files.map(async (file) => {
+            try {
+                const result = await processImageWithWatermark(file, settingsObj);
+                return { success: true, result };
+            } catch (error) {
+                return { success: false, error: error.message, filename: file.originalname };
+            }
+        });
+        
+        const results = await Promise.all(processPromises);
+        const successful = results.filter(r => r.success);
+        const failed = results.filter(r => !r.success);
+        
+        res.json({
+            processed: successful.length,
+            failed: failed.length,
+            results: successful.map(r => r.result),
+            errors: failed
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+async function processImageWithWatermark(file, settings) {
+    const image = await loadImage(file.buffer);
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    
+    // Draw original image
+    ctx.drawImage(image, 0, 0);
+    
+    // Apply watermark based on settings
+    if (settings.type === 'text') {
+        ctx.font = `${settings.text.size}px ${settings.text.font}`;
+        ctx.fillStyle = settings.text.color;
+        ctx.globalAlpha = settings.text.opacity / 100;
+        
+        const position = calculatePosition(settings.position, image.width, image.height);
+        ctx.fillText(settings.text.content, position.x, position.y);
+    }
+    
+    return {
+        originalName: file.originalname,
+        processedImage: canvas.toBuffer('image/png').toString('base64'),
+        width: image.width,
+        height: image.height
+    };
+}
+
+function calculatePosition(positionSettings, width, height) {
+    const { preset, x: offsetX, y: offsetY } = positionSettings;
+    
+    let baseX, baseY;
+    
+    switch (preset) {
+        case 'center':
+            baseX = width / 2;
+            baseY = height / 2;
+            break;
+        case 'bottom-right':
+            baseX = width - 100;
+            baseY = height - 50;
+            break;
+        default:
+            baseX = width / 2;
+            baseY = height / 2;
+    }
+    
+    return {
+        x: baseX + offsetX,
+        y: baseY + offsetY
+    };
+}
+
+app.listen(3000, () => {
+    console.log('Watermark API server running on port 3000');
+});
+        </div>
+    </div>
+
+    <h2>4. WordPress Plugin Integration</h2>
+    <div class="framework">
+        <h3>WordPress Plugin Structure</h3>
+        <div class="code">
+&lt;?php
+/*
+Plugin Name: WatermarkPro Integration
+Description: Integrate WatermarkPro with WordPress media library
+Version: 1.0.0
+*/
+
+class WatermarkProPlugin {
+    
+    public function __construct() {
+        add_action('init', array($this, 'init'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        add_action('wp_ajax_watermark_image', array($this, 'ajax_watermark_image'));
+        add_action('wp_ajax_nopriv_watermark_image', array($this, 'ajax_watermark_image'));
+    }
+    
+    public function init() {
+        // Add watermark button to media library
+        add_filter('attachment_fields_to_edit', array($this, 'add_watermark_field'), 10, 2);
+    }
+    
+    public function enqueue_scripts() {
+        wp_enqueue_script(
+            'watermarkpro-js',
+            plugin_dir_url(__FILE__) . 'js/watermarkpro-wp.js',
+            array('jquery'),
+            '1.0.0',
+            true
+        );
+        
+        wp_localize_script('watermarkpro-js', 'watermarkAjax', array(
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('watermark_nonce')
+        ));
+    }
+    
+    public function add_watermark_field($form_fields, $post) {
+        if (strpos($post->post_mime_type, 'image') !== false) {
+            $form_fields['watermark'] = array(
+                'label' => 'Add Watermark',
+                'input' => 'html',
+                'html' => '
+                    &lt;button type="button" class="button watermark-btn" data-attachment-id="' . $post->ID . '"&gt;
+                        Add Watermark
+                    &lt;/button&gt;
+                    &lt;div id="watermark-settings-' . $post->ID . '" class="watermark-settings" style="display: none;"&gt;
+                        &lt;p&gt;
+                            &lt;label&gt;Text:&lt;/label&gt;
+                            &lt;input type="text" name="watermark_text" value="© ' . get_bloginfo('name') . '" /&gt;
+                        &lt;/p&gt;
+                        &lt;p&gt;
+                            &lt;label&gt;Position:&lt;/label&gt;
+                            &lt;select name="watermark_position"&gt;
+                                &lt;option value="bottom-right"&gt;Bottom Right&lt;/option&gt;
+                                &lt;option value="bottom-left"&gt;Bottom Left&lt;/option&gt;
+                                &lt;option value="center"&gt;Center&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/p&gt;
+                        &lt;p&gt;
+                            &lt;button type="button" class="button button-primary apply-watermark" data-attachment-id="' . $post->ID . '"&gt;
+                                Apply Watermark
+                            &lt;/button&gt;
+                        &lt;/p&gt;
+                    &lt;/div&gt;
+                '
+            );
+        }
+        
+        return $form_fields;
+    }
+    
+    public function ajax_watermark_image() {
+        check_ajax_referer('watermark_nonce', 'nonce');
+        
+        $attachment_id = intval($_POST['attachment_id']);
+        $watermark_text = sanitize_text_field($_POST['watermark_text']);
+        $position = sanitize_text_field($_POST['position']);
+        
+        $file_path = get_attached_file($attachment_id);
+        
+        if (!$file_path) {
+            wp_die('File not found');
+        }
+        
+        // Process image with watermark (simplified version)
+        $result = $this->add_watermark_to_image($file_path, $watermark_text, $position);
+        
+        if ($result) {
+            wp_send_json_success('Watermark applied successfully');
+        } else {
+            wp_send_json_error('Failed to apply watermark');
+        }
+    }
+    
+    private function add_watermark_to_image($file_path, $text, $position) {
+        // This would integrate with WatermarkPro JavaScript library
+        // For server-side processing, you might use ImageMagick or GD
+        
+        $image_info = getimagesize($file_path);
+        
+        if ($image_info[2] == IMAGETYPE_JPEG) {
+            $image = imagecreatefromjpeg($file_path);
+        } elseif ($image_info[2] == IMAGETYPE_PNG) {
+            $image = imagecreatefrompng($file_path);
+        } else {
+            return false;
+        }
+        
+        // Add watermark text
+        $font_size = 24;
+        $font_color = imagecolorallocatealpha($image, 255, 255, 255, 50);
+        
+        // Calculate position
+        $x = ($position == 'bottom-right') ? $image_info[0] - 200 : 50;
+        $y = ($position == 'center') ? $image_info[1] / 2 : $image_info[1] - 50;
+        
+        imagettftext($image, $font_size, 0, $x, $y, $font_color, plugin_dir_path(__FILE__) . 'fonts/arial.ttf', $text);
+        
+        // Save watermarked image
+        $watermarked_path = str_replace('.', '_watermarked.', $file_path);
+        
+        if ($image_info[2] == IMAGETYPE_JPEG) {
+            imagejpeg($image, $watermarked_path, 90);
+        } else {
+            imagepng($image, $watermarked_path);
+        }
+        
+        imagedestroy($image);
+        
+        return true;
+    }
+}
+
+new WatermarkProPlugin();
+?&gt;
+        </div>
+        
+        <h3>JavaScript Integration for WordPress</h3>
+        <div class="code">
+// js/watermarkpro-wp.js
+jQuery(document).ready(function($) {
+    // Initialize WatermarkPro components
+    const imageProcessor = new ImageProcessor();
+    const watermarkEngine = new WatermarkEngine();
+    
+    // Handle watermark button clicks
+    $(document).on('click', '.watermark-btn', function() {
+        const attachmentId = $(this).data('attachment-id');
+        $('#watermark-settings-' + attachmentId).toggle();
+    });
+    
+    // Handle watermark application
+    $(document).on('click', '.apply-watermark', function() {
+        const attachmentId = $(this).data('attachment-id');
+        const settings = {
+            text: $('input[name="watermark_text"]').val(),
+            position: $('select[name="watermark_position"]').val()
+        };
+        
+        applyWatermarkToWordPressImage(attachmentId, settings);
+    });
+    
+    async function applyWatermarkToWordPressImage(attachmentId, settings) {
+        try {
+            // Get image URL from WordPress
+            const imageUrl = $

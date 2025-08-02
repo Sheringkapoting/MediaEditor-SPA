@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WatermarkPro - Advanced Features</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .feature {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 25px 0;
+            border-left: 5px solid #28a745;
+        }
+        .code {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+        }
+        .demo-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: white;
+        }
+        h1, h2 { color: #2d3748; }
+        .highlight { background: #fff3cd; padding: 2px 6px; border-radius: 4px; }
+        .warning { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 6px; margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>🚀 WatermarkPro - Advanced Features</h1>
+    
+    <p>Explore the advanced capabilities of WatermarkPro for professional image watermarking workflows.</p>
+
+    <h2>1. Dynamic Watermark Positioning</h2>
+    <div class="feature">
+        <p>Automatically adjust watermark position based on image content and aspect ratio:</p>
+        <div class="code">
+class AdvancedPositioning {
+    static calculateOptimalPosition(imageData, watermarkSize) {
+        const { width, height } = imageData;
+        const aspectRatio = width / height;
+        
+        // Adjust position based on aspect ratio
+        if (aspectRatio > 2) { // Wide images
+            return { preset: 'center-right', x: -50, y: 0 };
+        } else if (aspectRatio < 0.5) { // Tall images  
+            return { preset: 'bottom-center', x: 0, y: -30 };
+        } else { // Standard images
+            return { preset: 'bottom-right', x: -30, y: -30 };
+        }
+    }
+    
+    static detectImageBrightness(imageData) {
+        // Analyze image brightness to determine watermark color
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        
+        ctx.drawImage(imageData.element, 0, 0);
+        const imageDataArray = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        
+        let totalBrightness = 0;
+        for (let i = 0; i < imageDataArray.data.length; i += 4) {
+            const r = imageDataArray.data[i];
+            const g = imageDataArray.data[i + 1];
+            const b = imageDataArray.data[i + 2];
+            totalBrightness += (r + g + b) / 3;
+        }
+        
+        return totalBrightness / (imageDataArray.data.length / 4);
+    }
+}
+
+// Usage
+const optimalPosition = AdvancedPositioning.calculateOptimalPosition(imageData, watermarkSize);
+const brightness = AdvancedPositioning.detectImageBrightness(imageData);
+const textColor = brightness > 128 ? '#000000' : '#ffffff';
+        </div>
+    </div>
+
+    <h2>2. Batch Processing with Different Settings</h2>
+    <div class="feature">
+        <p>Apply different watermark settings to different images in a batch:</p>
+        <div class="code">
+class AdvancedBatchProcessor extends BatchProcessor {
+    async processWithRules(images, rules) {
+        const results = [];
+        
+        for (const image of images) {
+            try {
+                // Apply rules based on image characteristics
+                const settings = this.applyRules(image, rules);
+                const result = await this.processImage(image, settings);
+                results.push(result);
+                
+                // Report progress
+                this.reportProgress(results.length, images.length, 
+                    `Processed ${image.name}`);
+                    
+            } catch (error) {
+                console.error(`Failed to process ${image.name}:`, error);
+                results.push({ error: error.message, image: image.name });
+            }
+        }
+        
+        return results;
+    }
+    
+    applyRules(image, rules) {
+        let settings = { ...rules.default };
+        
+        // Rule: Large images get smaller watermarks
+        if (image.imageData.width > 2000 || image.imageData.height > 2000) {
+            settings.text.size = Math.round(settings.text.size * 0.8);
+            settings.image.scale = Math.round(settings.image.scale * 0.8);
+        }
+        
+        // Rule: Portrait images get bottom-center position
+        const aspectRatio = image.imageData.width / image.imageData.height;
+        if (aspectRatio < 0.8) {
+            settings.position.preset = 'bottom-center';
+        }
+        
+        // Rule: Dark images get light watermarks
+        const brightness = AdvancedPositioning.detectImageBrightness(image.imageData);
+        if (brightness < 100) {
+            settings.text.color = '#ffffff';
+            settings.text.opacity = 90;
+        }
+        
+        return settings;
+    }
+}
+
+// Usage
+const processor = new AdvancedBatchProcessor();
+const rules = {
+    default: {
+        type: 'text',
+        text: { content: '© Company', size: 48, color: '#000000', opacity: 80 },
+        position: { preset: 'bottom-right', x: -30, y: -30 }
+    }
+};
+
+const results = await processor.processWithRules(images, rules);
+        </div>
+    </div>
+
+    <h2>3. Custom Watermark Effects</h2>
+    <div class="feature">
+        <p>Create advanced visual effects for watermarks:</p>
+        <div class="code">
+class WatermarkEffects {
+    static applyDropShadow(ctx, text, x, y, settings) {
+        const { font, color, size } = settings.text;
+        
+        ctx.save();
+        ctx.font = `${size}px ${font}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Draw shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillText(text, x + 3, y + 3);
+        
+        // Draw main text
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y);
+        
+        ctx.restore();
+    }
+    
+    static applyGradientText(ctx, text, x, y, settings) {
+        const { size, font } = settings.text;
+        
+        ctx.save();
+        ctx.font = `${size}px ${font}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Create gradient
+        const gradient = ctx.createLinearGradient(x - 50, y - 25, x + 50, y + 25);
+        gradient.addColorStop(0, '#ff6b6b');
+        gradient.addColorStop(0.5, '#4ecdc4');
+        gradient.addColorStop(1, '#45b7d1');
+        
+        ctx.fillStyle = gradient;
+        ctx.fillText(text, x, y);
+        
+        ctx.restore();
+    }
+    
+    static applyOutlineEffect(ctx, text, x, y, settings) {
+        const { size, font, color } = settings.text;
+        
+        ctx.save();
+        ctx.font = `${size}px ${font}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Draw outline
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(text, x, y);
+        
+        // Draw fill
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y);
+        
+        ctx.restore();
+    }
+    
+    static applyNeonEffect(ctx, text, x, y, settings) {
+        const { size, font } = settings.text;
+        
+        ctx.save();
+        ctx.font = `${size}px ${font}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Outer glow
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(text, x, y);
+        
+        // Inner glow
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#0080ff';
+        ctx.fillText(text, x, y);
+        
+        // Core text
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(text, x, y);
+        
+        ctx.restore();
+    }
+}
+        </div>
+    </div>
+
+    <h2>4. Intelligent Template System</h2>
+    <div class="feature">
+        <p>Smart template management with AI-powered suggestions:</p>
+        <div class="code">
+class SmartTemplateManager extends TemplateManager {
+    async suggestTemplate(imageData) {
+        const features = this.analyzeImage(imageData);
+        const templates = await this.getTemplates();
+        
+        // Score templates based on image features
+        const scored = templates.map(template => ({
+            ...template,
+            score: this.calculateCompatibilityScore(features, template)
+        }));
+        
+        // Return best matches
+        return scored.sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+    
+    analyzeImage(imageData) {
+        return {
+            aspectRatio: imageData.width / imageData.height,
+            size: imageData.width * imageData.height,
+            brightness: AdvancedPositioning.detectImageBrightness(imageData),
+            dominantColors: this.extractDominantColors(imageData),
+            hasText: this.detectTextInImage(imageData),
+            category: this.categorizeImage(imageData)
+        };
+    }
+    
+    calculateCompatibilityScore(features, template) {
+        let score = 0;
+        
+        // Aspect ratio compatibility
+        const templateAspect = this.getTemplateAspectRatio(template);
+        const aspectDiff = Math.abs(features.aspectRatio - templateAspect);
+        score += Math.max(0, 10 - aspectDiff * 5);
+        
+        // Brightness compatibility
+        const templateBrightness = this.getTemplateBrightness(template);
+        const brightnessDiff = Math.abs(features.brightness - templateBrightness);
+        score += Math.max(0, 10 - brightnessDiff / 25);
+        
+        // Size compatibility
+        if (features.size > 1000000) { // Large images
+            score += template.settings.text?.size > 40 ? 5 : 0;
+        } else { // Small images
+            score += template.settings.text?.size < 60 ? 5 : 0;
+        }
+        
+        return score;
+    }
+    
+    async autoOptimizeTemplate(template, imageData) {
+        const optimized = JSON.parse(JSON.stringify(template));
+        const features = this.analyzeImage(imageData);
+        
+        // Auto-adjust text size based on image size
+        if (optimized.settings.text) {
+            const sizeFactor = Math.sqrt(features.size) / 1000;
+            optimized.settings.text.size = Math.round(
+                optimized.settings.text.size * Math.max(0.5, Math.min(2, sizeFactor))
+            );
+        }
+        
+        // Auto-adjust opacity based on brightness
+        if (features.brightness > 200) { // Very bright image
+            optimized.settings.text.opacity = Math.max(70, optimized.settings.text.opacity);
+        } else if (features.brightness < 50) { // Very dark image
+            optimized.settings.text.opacity = Math.min(90, optimized.settings.text.opacity + 20);
+        }
+        
+        return optimized;
+    }
+}
+        </div>
+    </div>
+
+    <h2>5. Performance Optimization</h2>
+    <div class="feature">
+        <p>Advanced techniques for handling large batches and high-resolution images:</p>
+        <div class="code">
+class PerformanceOptimizer {
+    static createWorkerPool(workerCount = 4) {
+        const workers = [];
+        
+        for (let i = 0; i < workerCount; i++) {
+            const worker = new Worker('watermark-worker.js');
+            workers.push({
+                worker,
+                busy: false,
+                id: i
+            });
+        }
+        
+        return workers;
+    }
+    
+    static async processInWorker(workerPool, imageData, settings) {
+        const availableWorker = workerPool.find(w => !w.busy);
+        
+        if (!availableWorker) {
+            // Wait for worker to become available
+            await new Promise(resolve => {
+                const checkWorkers = () => {
+                    const worker = workerPool.find(w => !w.busy);
+                    if (worker) {
+                        resolve();
+                    } else {
+                        setTimeout(checkWorkers, 50);
+                    }
+                };
+                checkWorkers();
+            });
+            
+            return this.processInWorker(workerPool, imageData, settings);
+        }
+        
+        availableWorker.busy = true;
+        
+        return new Promise((resolve, reject) => {
+            availableWorker.worker.onmessage = (e) => {
+                availableWorker.busy = false;
+                if (e.data.error) {
+                    reject(new Error(e.data.error));
+                } else {
+                    resolve(e.data.result);
+                }
+            };
+            
+            availableWorker.worker.postMessage({
+                imageData: imageData,
+                settings: settings
+            });
+        });
+    }
+    
+    static optimizeMemoryUsage() {
+        // Force garbage collection
+        if (window.gc) {
+            window.gc();
+        }
+        
+        // Clear image caches
+        const caches = document.querySelectorAll('canvas');
+        caches.forEach(canvas => {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        });
+    }
+    
+    static async processLargeImage(imageData, settings, maxDimension = 2048) {
+        const { width, height } = imageData;
+        
+        if (width <= maxDimension && height <= maxDimension) {
+            // Image is small enough, process normally
+            return await this.standardProcess(imageData, settings);
+        }
+        
+        // Scale down, process, then scale back up
+        const scale = Math.min(maxDimension / width, maxDimension / height);
+        const scaledData = await this.scaleImage(imageData, scale);
+        
+        // Adjust watermark settings for scaled image
+        const scaledSettings = this.scaleSettings(settings, scale);
+        
+        // Process scaled image
+        const result = await this.standardProcess(scaledData, scaledSettings);
+        
+        // Scale result back to original size
+        return await this.scaleImage(result, 1 / scale);
+    }
+}
+
+// Worker file (watermark-worker.js)
+const workerCode = `
+    importScripts('watermark-engine.js');
+    
+    self.onmessage = function(e) {
+        try {
+            const { imageData, settings } = e.data;
+            const engine = new WatermarkEngine();
+            const result = engine.generateWatermarkedImage(imageData, settings);
+            
+            self.postMessage({ result });
+        } catch (error) {
+            self.postMessage({ error: error.message });
+        }
+    };
+`;
+        </div>
+    </div>
+
+    <div class="success">
+        <strong>Pro Tip:</strong> These advanced features can be combined to create powerful, automated watermarking workflows. Consider your specific use case and implement only the features you need to avoid over-complexity.
+    </div>
+    
+    <div class="warning">
+        <strong>Performance Note:</strong> Advanced features like worker pools and large image processing require careful memory management. Monitor your application's performance and adjust parameters based on your target devices.
+    </div>
+
+    <h2>6. Integration Examples</h2>
+    <div class="demo-section">
+        <h3>E-commerce Integration</h3>
+        <div class="code">
+// Auto-watermark product images on upload
+class EcommerceWatermark {
+    static async processProductImage(file, productInfo) {
+        const settings = {
+            type: 'combined',
+            text: {
+                content: `© ${productInfo.brandName}`,
+                size: 32,
+                color: '#ffffff',
+                opacity: 75
+            },
+            image: {
+                imageData: await this.loadBrandLogo(productInfo.brandId),
+                scale: 15,
+                opacity: 60
+            },
+            position: { preset: 'bottom-right', x: -20, y: -20 }
+        };
+        
+        return await watermarkEngine.generateWatermarkedImage(file, settings);
+    }
+}
+        </div>
+        
+        <h3>Photography Portfolio</h3>
+        <div class="code">
+// Batch process portfolio images with photographer signature
+class PhotographyWatermark {
+    static async processPortfolio(images, photographerInfo) {
+        const settings = {
+            type: 'text',
+            text: {
+                content: `© ${photographerInfo.name} | ${photographerInfo.website}`,
+                font: 'Georgia',
+                size: 28,
+                color: '#ffffff',
+                opacity: 85
+            },
+            position: { preset: 'bottom-center', x: 0, y: -25 }
+        };
+        
+        const batchProcessor = new BatchProcessor();
+        return await batchProcessor.processWithCustomSettings(
+            images.map(img => ({ image: img, settings }))
+        );
+    }
+}
+        </div>
+    </div>
+</body>
+</html>

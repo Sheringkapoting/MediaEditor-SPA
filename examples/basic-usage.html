@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WatermarkPro - Basic Usage Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .example {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .code {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        h1, h2 { color: #2d3748; }
+        .demo-container {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .demo-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .demo-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 WatermarkPro - Basic Usage Examples</h1>
+    
+    <p>This page demonstrates basic usage patterns for the WatermarkPro application. Use these examples to understand how to integrate watermarking functionality into your own projects.</p>
+
+    <h2>1. Simple Text Watermark</h2>
+    <div class="example">
+        <p>Add a simple text watermark to an image:</p>
+        <div class="code">
+// Initialize the watermark engine
+const watermarkEngine = new WatermarkEngine();
+
+// Define watermark settings
+const settings = {
+    type: 'text',
+    text: {
+        content: '© Your Company 2025',
+        font: 'Arial',
+        size: 48,
+        color: '#ffffff',
+        opacity: 80,
+        rotation: 0
+    },
+    position: {
+        preset: 'bottom-right',
+        x: -20,
+        y: -20
+    },
+    output: {
+        format: 'png',
+        quality: 95
+    }
+};
+
+// Apply watermark to image
+const result = await watermarkEngine.generateWatermarkedImage(imageData, settings);
+        </div>
+    </div>
+
+    <h2>2. Logo Watermark</h2>
+    <div class="example">
+        <p>Add a logo as a watermark with transparency:</p>
+        <div class="code">
+// Load logo image
+const logoFile = document.getElementById('logoInput').files[0];
+const logoImageData = await imageProcessor.loadImage(logoFile);
+
+const settings = {
+    type: 'image',
+    image: {
+        imageData: logoImageData,
+        scale: 25,
+        opacity: 70,
+        rotation: 0
+    },
+    position: {
+        preset: 'top-left',
+        x: 20,
+        y: 20
+    },
+    output: {
+        format: 'jpeg',
+        quality: 90
+    }
+};
+        </div>
+    </div>
+
+    <h2>3. Batch Processing</h2>
+    <div class="example">
+        <p>Process multiple images with the same watermark:</p>
+        <div class="code">
+// Initialize batch processor
+const batchProcessor = new BatchProcessor();
+
+// Set progress callback
+batchProcessor.setProgressCallback((progress) => {
+    console.log(`Processing: ${progress.percent}%`);
+    updateProgressBar(progress.percent);
+});
+
+// Add images to queue
+const imageFiles = document.getElementById('imageInput').files;
+const sourceImages = [];
+
+for (const file of imageFiles) {
+    const imageData = await imageProcessor.loadImage(file);
+    sourceImages.push({
+        id: Date.now() + Math.random(),
+        name: file.name,
+        size: file.size,
+        imageData: imageData
+    });
+}
+
+// Process all images
+batchProcessor.addToQueue(sourceImages, watermarkSettings);
+const results = await batchProcessor.processQueue();
+
+console.log(`Processed ${results.completed} images successfully`);
+        </div>
+    </div>
+
+    <h2>4. Template Management</h2>
+    <div class="example">
+        <p>Save and reuse watermark configurations:</p>
+        <div class="code">
+// Initialize template manager
+const templateManager = new TemplateManager();
+
+// Save current settings as template
+await templateManager.saveTemplate('Company Logo', watermarkSettings);
+
+// Load template later
+const template = await templateManager.loadTemplate('Company Logo');
+const loadedSettings = template.settings;
+
+// Get all saved templates
+const allTemplates = await templateManager.getTemplates();
+console.log(`Found ${allTemplates.length} saved templates`);
+        </div>
+    </div>
+
+    <h2>5. Interactive Demo</h2>
+    <div class="demo-container">
+        <h3>Try It Out</h3>
+        <p>Select an image and see basic watermarking in action:</p>
+        
+        <input type="file" id="demoImageInput" accept="image/*" style="margin: 10px;">
+        <br>
+        <button class="demo-button" onclick="addTextWatermark()">Add Text Watermark</button>
+        <button class="demo-button" onclick="downloadResult()">Download Result</button>
+        
+        <canvas id="demoCanvas" width="400" height="300" style="border: 1px solid #ccc; margin-top: 20px; max-width: 100%;"></canvas>
+    </div>
+
+    <h2>6. Error Handling</h2>
+    <div class="example">
+        <p>Always include proper error handling:</p>
+        <div class="code">
+try {
+    const imageData = await imageProcessor.loadImage(file);
+    const result = await watermarkEngine.generateWatermarkedImage(imageData, settings);
+    
+    // Success - display or download result
+    displayResult(result);
+    
+} catch (error) {
+    console.error('Watermarking failed:', error);
+    
+    // Show user-friendly error message
+    showErrorMessage('Failed to process image: ' + error.message);
+}
+        </div>
+    </div>
+
+    <h2>7. Responsive Integration</h2>
+    <div class="example">
+        <p>Integrate with modern web frameworks:</p>
+        <div class="code">
+// React Component Example
+function WatermarkComponent() {
+    const [processing, setProcessing] = useState(false);
+    const [result, setResult] = useState(null);
+    
+    const handleWatermark = async (file, settings) => {
+        setProcessing(true);
+        try {
+            const imageProcessor = new ImageProcessor();
+            const watermarkEngine = new WatermarkEngine();
+            
+            const imageData = await imageProcessor.loadImage(file);
+            const watermarked = await watermarkEngine.generateWatermarkedImage(imageData, settings);
+            
+            setResult(watermarked.dataUrl);
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            setProcessing(false);
+        }
+    };
+    
+    return (
+        &lt;div&gt;
+            {processing && &lt;p&gt;Processing...&lt;/p&gt;}
+            {result && &lt;img src={result} alt="Watermarked" /&gt;}
+        &lt;/div&gt;
+    );
+}
+        </div>
+    </div>
+
+    <script>
+        // Demo functionality
+        let demoImageData = null;
+        let demoResult = null;
+
+        document.getElementById('demoImageInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                try {
+                    // Simple demo loading
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.getElementById('demoCanvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Scale image to fit canvas
+                            const scale = Math.min(canvas.width / img.width, canvas.height / img.height);
+                            const scaledWidth = img.width * scale;
+                            const scaledHeight = img.height * scale;
+                            
+                            // Clear and draw image
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 
+                                (canvas.width - scaledWidth) / 2, 
+                                (canvas.height - scaledHeight) / 2, 
+                                scaledWidth, 
+                                scaledHeight
+                            );
+                            
+                            demoImageData = { img, scale, scaledWidth, scaledHeight };
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } catch (error) {
+                    alert('Error loading image: ' + error.message);
+                }
+            }
+        });
+
+        function addTextWatermark() {
+            if (!demoImageData) {
+                alert('Please select an image first');
+                return;
+            }
+
+            const canvas = document.getElementById('demoCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Add text watermark
+            ctx.save();
+            ctx.font = '24px Arial';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.textAlign = 'center';
+            
+            const text = '© WatermarkPro Demo';
+            const x = canvas.width / 2;
+            const y = canvas.height - 30;
+            
+            ctx.strokeText(text, x, y);
+            ctx.fillText(text, x, y);
+            ctx.restore();
+            
+            demoResult = canvas.toDataURL();
+        }
+
+        function downloadResult() {
+            if (!demoResult) {
+                alert('Please add a watermark first');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.download = 'watermarked-demo.png';
+            link.href = demoResult;
+            link.click();
+        }
+    </script>
+</body>
+</html>

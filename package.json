@@ -1,0 +1,40 @@
+{
+  "name": "watermarkpro",
+  "version": "1.0.0",
+  "description": "Professional batch image watermarking web application",
+  "main": "index.html",
+  "scripts": {
+    "test": "open tests/test-runner.html",
+    "serve": "python -m http.server 8000",
+    "build": "echo 'No build process required - ready to deploy'",
+    "deploy": "echo 'Copy all files to your web server'"
+  },
+  "keywords": [
+    "watermark",
+    "image-processing",
+    "batch-processing",
+    "javascript",
+    "canvas",
+    "photography",
+    "branding"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "homepage": "https://github.com/yourusername/watermarkpro",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/watermarkpro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/watermarkpro/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browserslist": [
+    "Chrome >= 80",
+    "Firefox >= 75",
+    "Safari >= 13",
+    "Edge >= 80"
+  ]
+}
