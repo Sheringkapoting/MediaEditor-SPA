@@ -1,18 +1,18 @@
 /* CSS Variables for theming */
 :root {
-    --primary-color: #2563eb;
-    --secondary-color: #64748b;
-    --success-color: #059669;
-    --danger-color: #dc2626;
-    --warning-color: #d97706;
-    --info-color: #0891b2;
-    --light-bg: #f8fafc;
-    --dark-bg: #1e293b;
-    --border-color: #e2e8f0;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --radius: 8px;
+    --primary-color: #4f46e5;
+    --secondary-color: #6b7280;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #0ea5e9;
+    --light-bg: #f3f4f6;
+    --dark-bg: #1f2937;
+    --border-color: #e5e7eb;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --radius: 12px;
 }
 
 * {
@@ -22,9 +22,9 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #1e293b;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--light-bg);
+    color: var(--text-primary);
     min-height: 100vh;
 }
 
@@ -36,9 +36,9 @@ body {
 
 /* Header Styles */
 .app-header {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: #ffffff;
     border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     padding: 1rem 0;
     position: sticky;
     top: 0;
@@ -71,21 +71,42 @@ body {
 /* Main Layout */
 .app-main {
     flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+}
+
+.layout-container {
+    flex: 1;
+    display: flex;
     max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-    display: grid;
-    grid-template-columns: 300px 1fr 350px;
+}
+
+.sidebar {
+    width: 300px;
+    background: #ffffff;
+    border-right: 1px solid var(--border-color);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
-    min-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.workspace {
+    flex: 1;
+    padding: 1.5rem;
+    background: var(--light-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
 /* Panel Styles */
 .source-panel,
 .preview-panel,
 .settings-panel {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: #ffffff;
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow);
@@ -98,7 +119,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--light-bg);
+    background: #f9fafb;
 }
 
 .panel-header h2 {
@@ -760,19 +781,16 @@ input[type="color"] {
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
-    .app-main {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+@media (max-width: 1024px) {
+    .layout-container {
+        flex-direction: column;
     }
 
-    .source-panel,
-    .settings-panel {
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
         order: 2;
-    }
-
-    .preview-panel {
-        order: 1;
     }
 }
 
@@ -783,7 +801,11 @@ input[type="color"] {
         gap: 1rem;
     }
 
-    .app-main {
+    .workspace {
+        padding: 1rem;
+    }
+
+    .sidebar {
         padding: 1rem;
     }
 
