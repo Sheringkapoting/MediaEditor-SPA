@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi Watermark Demo</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <style>
+    body { padding: 20px; }
+    #result img { max-width: 200px; margin: 10px; border: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <h1>Multi Watermark Demo</h1>
+  <p>Upload images and add multiple text or image watermarks.</p>
+  <div class="setting-group">
+    <input type="file" id="sourceInput" multiple accept="image/*">
+  </div>
+  <div class="setting-group">
+    <input type="text" id="wmText" placeholder="Watermark text">
+    <button id="addTextBtn" class="btn btn-secondary">Add Text Watermark</button>
+  </div>
+  <div class="setting-group">
+    <input type="file" id="wmImage" accept="image/*">
+    <button id="addImageBtn" class="btn btn-secondary">Add Image Watermark</button>
+  </div>
+  <div class="setting-group">
+    <button id="processBtn" class="btn btn-primary">Apply Watermarks</button>
+  </div>
+  <div id="result"></div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/imageProcessor.js"></script>
+  <script src="../js/watermarkEngine.js"></script>
+  <script>
+    const imageProcessor = new ImageProcessor();
+    const engine = new WatermarkEngine();
+    const watermarks = [];
+
+    document.getElementById('addTextBtn').addEventListener('click', () => {
+      const text = document.getElementById('wmText').value.trim();
+      if (!text) return;
+      watermarks.push({
+        type: 'text',
+        text: { content: text, font: 'Arial', size: 32, color: '#ffffff', opacity: 80, rotation: 0 },
+        position: { preset: 'bottom-right', x: -20, y: -20 }
+      });
+      document.getElementById('wmText').value = '';
+    });
+
+    document.getElementById('addImageBtn').addEventListener('click', async () => {
+      const file = document.getElementById('wmImage').files[0];
+      if (!file) return;
+      const data = await imageProcessor.loadImage(file);
+      watermarks.push({
+        type: 'image',
+        image: { imageData: data, scale: 30, opacity: 80, rotation: 0 },
+        position: { preset: 'top-left', x: 20, y: 20 }
+      });
+      document.getElementById('wmImage').value = '';
+    });
+
+    document.getElementById('processBtn').addEventListener('click', async () => {
+      const files = document.getElementById('sourceInput').files;
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+      for (const file of files) {
+        const imgData = await imageProcessor.loadImage(file);
+        const preview = await engine.generatePreviewMultiple(imgData, watermarks, 500);
+        const imgEl = document.createElement('img');
+        imgEl.src = preview.dataUrl;
+        resultDiv.appendChild(imgEl);
+      }
+    });
+  </script>
+</body>
+</html>

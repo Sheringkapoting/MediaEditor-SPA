@@ -43,6 +43,19 @@ class WatermarkEngine {
     }
 
     /**
+     * Apply multiple watermarks sequentially
+     * @param {CanvasRenderingContext2D} targetCtx - Target canvas context
+     * @param {Array} watermarks - Array of watermark settings
+     * @param {Object} bounds - Drawing bounds
+     * @param {number} scaleFactor - Scale factor for positioning
+     */
+    async applyWatermarks(targetCtx, watermarks, bounds, scaleFactor = 1) {
+        for (const wm of watermarks) {
+            await this.applyWatermark(targetCtx, wm, bounds, scaleFactor);
+        }
+    }
+
+    /**
      * Apply text watermark with proper scaling
      */
     async applyTextWatermark(ctx, settings, bounds, scaleFactor = 1) {
@@ -387,6 +400,42 @@ class WatermarkEngine {
 
         } catch (error) {
             console.error('Error generating preview:', error);
+            throw new Error(`Failed to generate preview: ${error.message}`);
+        }
+    }
+
+    /**
+     * Generate preview with multiple watermarks
+     */
+    async generatePreviewMultiple(sourceImageData, watermarks, maxSize = 400) {
+        try {
+            const { element: img } = sourceImageData;
+
+            const scale = Math.min(maxSize / img.width, maxSize / img.height);
+            const previewWidth = Math.round(img.width * scale);
+            const previewHeight = Math.round(img.height * scale);
+
+            this.tempCanvas.width = previewWidth;
+            this.tempCanvas.height = previewHeight;
+
+            this.tempCtx.clearRect(0, 0, previewWidth, previewHeight);
+            this.tempCtx.drawImage(img, 0, 0, previewWidth, previewHeight);
+
+            const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
+
+            for (const wm of watermarks) {
+                await this.applyWatermark(this.tempCtx, wm, bounds);
+            }
+
+            return {
+                canvas: this.tempCanvas,
+                dataUrl: this.tempCanvas.toDataURL('image/png'),
+                width: previewWidth,
+                height: previewHeight
+            };
+
+        } catch (error) {
+            console.error('Error generating multi-preview:', error);
             throw new Error(`Failed to generate preview: ${error.message}`);
         }
     }
