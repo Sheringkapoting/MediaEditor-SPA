@@ -102,4 +102,37 @@ describe('WatermarkEngine', () => {
         expect(dimensions.width).toBeGreaterThan(0);
         expect(dimensions.height).toBe(48);
     });
+
+    it('should apply multiple watermarks without error', async () => {
+        const bounds = { x: 0, y: 0, width: 800, height: 600 };
+        const wmSettings = [
+            {
+                type: 'text',
+                text: {
+                    content: 'First',
+                    font: 'Arial',
+                    size: 20,
+                    color: '#000000',
+                    opacity: 100,
+                    rotation: 0
+                },
+                position: { preset: 'top-left', x: 0, y: 0 }
+            },
+            {
+                type: 'text',
+                text: {
+                    content: 'Second',
+                    font: 'Arial',
+                    size: 20,
+                    color: '#000000',
+                    opacity: 100,
+                    rotation: 0
+                },
+                position: { preset: 'bottom-right', x: 0, y: 0 }
+            }
+        ];
+
+        await watermarkEngine.applyWatermarks(mockContext, wmSettings, bounds);
+        expect(true).toBe(true);
+    });
 });
