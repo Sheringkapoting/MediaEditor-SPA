@@ -23,8 +23,8 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #1e293b;
+    background: #f5f7fa;
+    color: var(--text-primary);
     min-height: 100vh;
 }
 
@@ -36,9 +36,9 @@ body {
 
 /* Header Styles */
 .app-header {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: #ffffff;
     border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     padding: 1rem 0;
     position: sticky;
     top: 0;
@@ -84,8 +84,7 @@ body {
 .source-panel,
 .preview-panel,
 .settings-panel {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: #ffffff;
     border-radius: var(--radius);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow);
@@ -98,7 +97,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--light-bg);
+    background: #f9fafb;
 }
 
 .panel-header h2 {
