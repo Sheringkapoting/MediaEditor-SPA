@@ -56,112 +56,141 @@ class WatermarkEngine {
     }
 
     /**
-     * Apply text watermark with proper scaling
+     * Applies a text watermark with proper scaling and anti-aliasing.
      */
     async applyTextWatermark(ctx, settings, bounds, scaleFactor = 1) {
         try {
-            const { text, position } = settings;
+            const { text, transform } = settings; // Use the dynamic transform object
             
-            if (!text.content || text.content.trim() === '') {
-                return;
-            }
-
-            // Calculate scaled text size
-            const scaledTextSize = text.size * scaleFactor;
-            
-            // Estimate text dimensions with scaling
-            const textWidth = this.estimateTextWidth({
-                ...text,
-                size: scaledTextSize
-            });
-            
-            // Calculate position with scale factor
-            const pos = this.calculatePosition(position, bounds, {
-                width: textWidth,
-                height: scaledTextSize
-            }, false, scaleFactor);
-
-            // Apply transformations
             ctx.save();
-            ctx.translate(pos.x, pos.y);
             
-            if (text.rotation !== 0) {
-                ctx.rotate((text.rotation * Math.PI) / 180);
+            // CRITICAL FIX: Scale transform coordinates from preview to actual image dimensions
+            let actualTransform = transform;
+            if (transform && transform.previewCanvasWidth && transform.previewCanvasHeight) {
+                const scaleX = bounds.width / transform.previewCanvasWidth;
+                const scaleY = bounds.height / transform.previewCanvasHeight;
+                
+                actualTransform = {
+                    x: transform.x * scaleX,
+                    y: transform.y * scaleY,
+                    width: transform.width * scaleX,
+                    height: transform.height * scaleY,
+                    rotation: transform.rotation
+                };
+                
+                console.log(`📏 Scaling text watermark: preview ${transform.previewCanvasWidth}x${transform.previewCanvasHeight} -> actual ${bounds.width}x${bounds.height}`);
+                console.log(`   Transform: (${transform.x},${transform.y},${transform.width}x${transform.height}) -> (${actualTransform.x},${actualTransform.y},${actualTransform.width}x${actualTransform.height})`);
             }
-
-            // Set text properties with scaling
-            ctx.font = `${scaledTextSize}px ${text.font}`;
+            
+            // Use the dynamically calculated font size and transform
+            const fontSize = text.size * scaleFactor;
+            ctx.font = `${fontSize}px "${text.font}"`;
+            ctx.fillStyle = text.color;
+            ctx.globalAlpha = text.opacity / 100;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.globalAlpha = text.opacity / 100;
-
-            // Create text with stroke for better visibility
-            if (this.needsStroke(text.color)) {
-                ctx.strokeStyle = this.getContrastColor(text.color);
-                ctx.lineWidth = Math.max(1, scaledTextSize / 20);
-                ctx.strokeText(text.content, 0, 0);
-            }
-
-            // Fill text
-            ctx.fillStyle = text.color;
+            
+            const centerX = actualTransform.x + actualTransform.width / 2;
+            const centerY = actualTransform.y + actualTransform.height / 2;
+            
+            ctx.translate(centerX, centerY);
+            ctx.rotate(actualTransform.rotation * Math.PI / 180);
+            
+            // Ensure text is rendered without blur
+            ctx.imageSmoothingEnabled = true;
+            
             ctx.fillText(text.content, 0, 0);
-
+            
             ctx.restore();
-
         } catch (error) {
             console.error('Error applying text watermark:', error);
-            throw new Error(`Failed to apply text watermark: ${error.message}`);
         }
     }
 
     /**
-     * Apply image watermark with proper scaling
+     * Applies an image watermark maintaining aspect ratio and sharpness.
      */
     async applyImageWatermark(ctx, settings, bounds, scaleFactor = 1) {
         try {
-            const { image } = settings;
+            const { image, position, transform } = settings;
+            if (!image.imageData) return;
             
-            if (!image.imageData || !image.imageData.element) {
-                return;
-            }
-
-            const img = image.imageData.element;
+            const img = new Image();
+            img.src = image.imageData;
             
-            // Calculate scaled dimensions
-            const scale = (image.scale / 100) * scaleFactor;
-            const scaledWidth = img.width * scale;
-            const scaledHeight = img.height * scale;
-
-            // Calculate position with scale factor
-            const pos = this.calculatePosition(settings.position, bounds, {
-                width: scaledWidth,
-                height: scaledHeight
-            }, false, scaleFactor);
-
-            // Apply transformations
+            await new Promise(resolve => img.onload = resolve);
+            
             ctx.save();
-            ctx.translate(pos.x, pos.y);
             
-            if (image.rotation !== 0) {
-                ctx.rotate((image.rotation * Math.PI) / 180);
+            // CRITICAL FIX: Use transform object if available (for consistency with text watermarks)
+            if (transform) {
+                // Scale transform coordinates from preview to actual image dimensions
+                let actualTransform = transform;
+                if (transform.previewCanvasWidth && transform.previewCanvasHeight) {
+                    const scaleX = bounds.width / transform.previewCanvasWidth;
+                    const scaleY = bounds.height / transform.previewCanvasHeight;
+                    
+                    actualTransform = {
+                        x: transform.x * scaleX,
+                        y: transform.y * scaleY,
+                        width: transform.width * scaleX,
+                        height: transform.height * scaleY,
+                        rotation: transform.rotation
+                    };
+                    
+                    console.log(`📏 Scaling image watermark: preview ${transform.previewCanvasWidth}x${transform.previewCanvasHeight} -> actual ${bounds.width}x${bounds.height}`);
+                    console.log(`   Transform: (${transform.x},${transform.y},${transform.width}x${transform.height}) -> (${actualTransform.x},${actualTransform.y},${actualTransform.width}x${actualTransform.height})`);
+                }
+                
+                // Use transform-based positioning (same as text watermarks)
+                const centerX = actualTransform.x + actualTransform.width / 2;
+                const centerY = actualTransform.y + actualTransform.height / 2;
+                
+                ctx.translate(centerX, centerY);
+                ctx.rotate((actualTransform.rotation || 0) * Math.PI / 180);
+                
+                ctx.globalAlpha = image.opacity / 100;
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                // Draw image centered at origin (after translation)
+                ctx.drawImage(img, -actualTransform.width / 2, -actualTransform.height / 2, actualTransform.width, actualTransform.height);
+            } else {
+                // Fallback to position-based calculation (legacy mode)
+                const originalWidth = img.naturalWidth || img.width;
+                const originalHeight = img.naturalHeight || img.height;
+                const scale = (image.scale || 100) / 100 * scaleFactor;
+                
+                const watermarkWidth = originalWidth * scale;
+                const watermarkHeight = originalHeight * scale;
+                
+                // Calculate position
+                const pos = this.calculatePosition(position, bounds, {
+                    width: watermarkWidth,
+                    height: watermarkHeight
+                }, false, scaleFactor);
+                
+                // Apply rotation if specified
+                const rotation = image.rotation || 0;
+                if (rotation !== 0) {
+                    const centerX = pos.x + watermarkWidth / 2;
+                    const centerY = pos.y + watermarkHeight / 2;
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(rotation * Math.PI / 180);
+                    ctx.translate(-centerX, -centerY);
+                }
+                
+                ctx.globalAlpha = image.opacity / 100;
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                
+                ctx.drawImage(img, pos.x, pos.y, watermarkWidth, watermarkHeight);
             }
-
-            ctx.globalAlpha = image.opacity / 100;
-
-            // Draw image centered at origin
-            ctx.drawImage(
-                img,
-                -scaledWidth / 2,
-                -scaledHeight / 2,
-                scaledWidth,
-                scaledHeight
-            );
 
             ctx.restore();
-
         } catch (error) {
             console.error('Error applying image watermark:', error);
-            throw new Error(`Failed to apply image watermark: ${error.message}`);
+            throw error;
         }
     }
 
@@ -170,19 +199,34 @@ class WatermarkEngine {
      */
     calculatePosition(positionSettings, bounds, watermarkSize, isPreview = false, scaleFactor = 1) {
         try {
-            const { preset, x: offsetX, y: offsetY } = positionSettings;
+            const { preset, x: offsetX = 0, y: offsetY = 0 } = positionSettings || {};
             const { x: boundsX, y: boundsY, width: boundsWidth, height: boundsHeight } = bounds;
             const { width: wmWidth, height: wmHeight } = watermarkSize;
 
-            // Apply scale factor for consistent positioning
-            const scaledOffsetX = offsetX * scaleFactor;
-            const scaledOffsetY = offsetY * scaleFactor;
+            // Scaled dimensions/offsets for preset-based positioning
             const scaledWmWidth = wmWidth * scaleFactor;
             const scaledWmHeight = wmHeight * scaleFactor;
+            const scaledOffsetX = offsetX * scaleFactor;
+            const scaledOffsetY = offsetY * scaleFactor;
+
+            // Custom normalized positioning (center-based coordinates)
+            // If preset === 'custom', treat offsetX/offsetY as normalized center (0..1000)
+            if (preset === 'custom') {
+                const nx = Math.max(0, Math.min(1, (offsetX || 0) / 1000));
+                const ny = Math.max(0, Math.min(1, (offsetY || 0) / 1000));
+                
+                // Calculate center position, then convert to top-left
+                const centerX = boundsX + boundsWidth * nx;
+                const centerY = boundsY + boundsHeight * ny;
+                
+                return {
+                    x: centerX - scaledWmWidth / 2,
+                    y: centerY - scaledWmHeight / 2,
+                    scaleFactor
+                };
+            }
 
             let baseX, baseY;
-
-            // Calculate base position based on preset
             switch (preset) {
                 case 'top-left':
                     baseX = boundsX + scaledWmWidth / 2;
@@ -225,13 +269,11 @@ class WatermarkEngine {
                     baseY = boundsY + boundsHeight / 2;
             }
 
-            // Apply offsets with proper scaling
             return {
                 x: baseX + scaledOffsetX,
                 y: baseY + scaledOffsetY,
-                scaleFactor: scaleFactor
+                scaleFactor
             };
-
         } catch (error) {
             console.error('Error calculating position:', error);
             return {
@@ -367,29 +409,21 @@ class WatermarkEngine {
     async generatePreview(sourceImageData, settings, maxSize = 400) {
         try {
             const { element: img } = sourceImageData;
-            
-            // Calculate preview size
+
             const scale = Math.min(maxSize / img.width, maxSize / img.height);
             const previewWidth = Math.round(img.width * scale);
             const previewHeight = Math.round(img.height * scale);
 
-            // Setup preview canvas
             this.tempCanvas.width = previewWidth;
             this.tempCanvas.height = previewHeight;
 
-            // Draw scaled source image
             this.tempCtx.clearRect(0, 0, previewWidth, previewHeight);
             this.tempCtx.drawImage(img, 0, 0, previewWidth, previewHeight);
 
-            // Apply watermark to preview
-            const bounds = {
-                x: 0,
-                y: 0,
-                width: previewWidth,
-                height: previewHeight
-            };
+            const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
 
-            await this.applyWatermark(this.tempCtx, settings, bounds);
+            // IMPORTANT: pass preview scale so size/position match the final output visually
+            await this.applyWatermark(this.tempCtx, settings, bounds, scale);
 
             return {
                 canvas: this.tempCanvas,
@@ -397,7 +431,6 @@ class WatermarkEngine {
                 width: previewWidth,
                 height: previewHeight
             };
-
         } catch (error) {
             console.error('Error generating preview:', error);
             throw new Error(`Failed to generate preview: ${error.message}`);
@@ -423,8 +456,9 @@ class WatermarkEngine {
 
             const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
 
+            // Draw in array order (assumed bottom -> top already defined by caller)
             for (const wm of watermarks) {
-                await this.applyWatermark(this.tempCtx, wm, bounds);
+                await this.applyWatermark(this.tempCtx, wm, bounds, scale);
             }
 
             return {
@@ -433,10 +467,51 @@ class WatermarkEngine {
                 width: previewWidth,
                 height: previewHeight
             };
-
         } catch (error) {
             console.error('Error generating multi-preview:', error);
             throw new Error(`Failed to generate preview: ${error.message}`);
+        }
+    }
+
+    async generateWatermarkedImageMultiple(sourceImageData, watermarks) {
+        try {
+            const { element: img } = sourceImageData;
+
+            // Full-resolution canvas
+            this.canvas.width = img.width;
+            this.canvas.height = img.height;
+            this.ctx.clearRect(0, 0, img.width, img.height);
+            this.ctx.drawImage(img, 0, 0);
+
+            const bounds = { x: 0, y: 0, width: img.width, height: img.height };
+
+            // Apply all watermarks in order
+            console.log(`🎨 Applying ${watermarks.length} watermarks to image ${img.width}x${img.height}`);
+            for (let i = 0; i < watermarks.length; i++) {
+                const wm = watermarks[i];
+                console.log(`  Watermark ${i + 1}: ${wm.type} - ${wm.type === 'text' ? wm.text.content : 'image'}`);
+                await this.applyWatermark(this.ctx, wm, bounds, 1);
+            }
+            console.log(`✅ Applied all ${watermarks.length} watermarks`);
+
+            // Use the first watermark's output settings (they should all match)
+            const first = watermarks[0] || {};
+            const out = (first.output && first.output.format) || 'png';
+            const qual = (first.output && first.output.quality) || 95;
+
+            const format = out === 'jpeg' ? 'image/jpeg' : out === 'webp' ? 'image/webp' : 'image/png';
+            const quality = Math.max(0, Math.min(1, qual / 100));
+
+            return {
+                canvas: this.canvas,
+                dataUrl: this.canvas.toDataURL(format, quality),
+                width: img.width,
+                height: img.height,
+                format
+            };
+        } catch (error) {
+            console.error('Error generating multi watermarked image:', error);
+            throw new Error(`Failed to generate watermarked image: ${error.message}`);
         }
     }
 
@@ -482,10 +557,22 @@ class WatermarkEngine {
             const validPositions = [
                 'top-left', 'top-center', 'top-right',
                 'center-left', 'center', 'center-right',
-                'bottom-left', 'bottom-center', 'bottom-right'
+                'bottom-left', 'bottom-center', 'bottom-right',
+                'custom'  // Allow custom positioning
             ];
             if (!validPositions.includes(settings.position.preset)) {
-                errors.push('Invalid position preset');
+                errors.push(`Invalid position preset: ${settings.position.preset}`);
+            }
+            
+            // Validate custom position coordinates
+            if (settings.position.preset === 'custom') {
+                if (typeof settings.position.x !== 'number' || typeof settings.position.y !== 'number') {
+                    errors.push('Custom position requires valid x and y coordinates');
+                }
+                if (settings.position.x < 0 || settings.position.x > 1000 || 
+                    settings.position.y < 0 || settings.position.y > 1000) {
+                    errors.push('Custom position coordinates must be between 0 and 1000');
+                }
             }
 
             return {

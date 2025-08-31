@@ -22,14 +22,16 @@ class BatchProcessor {
      */
     addToQueue(images, settings) {
         try {
-            if (!Array.isArray(images)) {
-                images = [images];
-            }
+            if (!Array.isArray(images)) images = [images];
+
+            const clonedSettings = Array.isArray(settings)
+                ? settings.map(s => JSON.parse(JSON.stringify(s)))
+                : JSON.parse(JSON.stringify(settings));
 
             const queueItems = images.map((image, index) => ({
                 id: `${Date.now()}_${index}`,
                 image: image,
-                settings: { ...settings }, // Deep copy settings
+                settings: clonedSettings, // deep cloned (single or array)
                 status: 'pending',
                 result: null,
                 error: null,
@@ -50,24 +52,43 @@ class BatchProcessor {
      */
     async processImage(sourceImage, settings) {
         try {
-            // Validate inputs
             if (!sourceImage || !sourceImage.imageData) {
                 throw new Error('Invalid source image data');
             }
 
-            const validation = this.watermarkEngine.validateSettings(settings);
-            if (!validation.isValid) {
-                throw new Error(`Invalid settings: ${validation.errors.join(', ')}`);
+            // Validate
+            if (Array.isArray(settings)) {
+                if (settings.length === 0) throw new Error('No watermark settings provided');
+                for (const s of settings) {
+                    const validation = this.watermarkEngine.validateSettings(s);
+                    if (!validation.isValid) {
+                        throw new Error(`Invalid settings: ${validation.errors.join(', ')}`);
+                    }
+                }
+            } else {
+                const validation = this.watermarkEngine.validateSettings(settings);
+                if (!validation.isValid) {
+                    throw new Error(`Invalid settings: ${validation.errors.join(', ')}`);
+                }
             }
 
-            // Generate watermarked image
-            const result = await this.watermarkEngine.generateWatermarkedImage(
-                sourceImage.imageData,
-                settings
-            );
+            // Apply watermark(s)
+            console.log(`📸 Processing image: ${sourceImage.name}`);
+            console.log(`   Settings type: ${Array.isArray(settings) ? 'Multiple' : 'Single'}`);
+            if (Array.isArray(settings)) {
+                console.log(`   Watermarks count: ${settings.length}`);
+                settings.forEach((s, i) => {
+                    console.log(`   Watermark ${i + 1}: ${s.type} - ${s.type === 'text' ? s.text.content : 'image'}`);
+                });
+            } else {
+                console.log(`   Single watermark: ${settings.type} - ${settings.type === 'text' ? settings.text.content : 'image'}`);
+            }
+            
+            const result = Array.isArray(settings)
+                ? await this.watermarkEngine.generateWatermarkedImageMultiple(sourceImage.imageData, settings)
+                : await this.watermarkEngine.generateWatermarkedImage(sourceImage.imageData, settings);
 
-            // Create output filename
-            const outputName = this.generateOutputFilename(sourceImage.name, settings);
+            const outputName = this.generateOutputFilename(sourceImage.name, Array.isArray(settings) ? settings[0] : settings);
 
             return {
                 id: sourceImage.id,
@@ -80,7 +101,7 @@ class BatchProcessor {
                 originalSize: sourceImage.size,
                 processedSize: this.estimateDataUrlSize(result.dataUrl),
                 processingTime: Date.now(),
-                settings: { ...settings }
+                settings: Array.isArray(settings) ? settings.map(s => ({ ...s })) : { ...settings }
             };
 
         } catch (error) {
@@ -272,22 +293,20 @@ class BatchProcessor {
     async createPreviewBatch(images, settings, maxPreviewSize = 200) {
         try {
             const previews = [];
-            
-            for (let i = 0; i < Math.min(images.length, 10); i++) { // Limit to 10 previews
+
+            for (let i = 0; i < Math.min(images.length, 10); i++) {
                 try {
-                    const preview = await this.watermarkEngine.generatePreview(
-                        images[i].imageData,
-                        settings,
-                        maxPreviewSize
-                    );
-                    
+                    const preview = Array.isArray(settings)
+                        ? await this.watermarkEngine.generatePreviewMultiple(images[i].imageData, settings, maxPreviewSize)
+                        : await this.watermarkEngine.generatePreview(images[i].imageData, settings, maxPreviewSize);
+
                     previews.push({
                         originalName: images[i].name,
                         previewDataUrl: preview.dataUrl,
                         width: preview.width,
                         height: preview.height
                     });
-                    
+
                 } catch (error) {
                     console.warn(`Failed to create preview for ${images[i].name}:`, error);
                 }

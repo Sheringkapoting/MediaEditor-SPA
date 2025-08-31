@@ -15,6 +15,179 @@
     --radius: 8px;
 }
 
+/* Toast Notification Styles */
+#toastContainer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+    width: 100%;
+}
+
+.toast {
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+    margin-bottom: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast span {
+    color: #1f2937;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.toast i {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.toast-close {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toast-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced visibility for different toast types */
+.toast.border-l-green-500 {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border-left-color: #22c55e;
+}
+
+.toast.border-l-red-500 {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-left-color: #ef4444;
+}
+
+.toast.border-l-yellow-500 {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-left-color: #f59e0b;
+}
+
+.toast.border-l-blue-500 {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-left-color: #3b82f6;
+}
+
+/* Watermark Image Quality Improvements */
+.multi-watermark-overlay img {
+    image-rendering: high-quality;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -ms-interpolation-mode: bicubic;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+}
+
+/* Canvas Quality Improvements */
+#previewCanvas {
+    image-rendering: high-quality;
+    image-rendering: -webkit-optimize-contrast;
+    -ms-interpolation-mode: bicubic;
+}
+
+/* Prevent blur during transforms */
+.multi-watermark-overlay {
+    transform: translateZ(0) translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    /* Pixel-perfect positioning */
+    transform-origin: 0 0;
+    -webkit-transform-origin: 0 0;
+    /* Force integer pixel positioning */
+    -webkit-transform: translateZ(0) translate3d(0, 0, 0);
+    /* Hardware acceleration */
+    -webkit-perspective: 1000;
+    perspective: 1000;
+}
+
+/* Smooth transitions without blur */
+.multi-watermark-overlay.dragging {
+    transition: none !important;
+    image-rendering: crisp-edges;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    /* Force pixel-perfect positioning during drag */
+    transform: translateZ(0) translate3d(0, 0, 0) !important;
+    will-change: transform, left, top;
+}
+
+/* Watermark content container quality */
+.watermark-content {
+    image-rendering: high-quality;
+    image-rendering: -webkit-optimize-contrast;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: optimizeLegibility;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0) translate3d(0, 0, 0);
+    will-change: transform;
+    /* Pixel-perfect positioning */
+    transform-origin: 0 0;
+    -webkit-transform-origin: 0 0;
+    /* Prevent sub-pixel rendering */
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    /* Force hardware acceleration */
+    -webkit-perspective: 1000;
+    perspective: 1000;
+}
+
+/* Text watermark quality improvements */
+.watermark-content div {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    font-feature-settings: "kern" 1;
+    -webkit-text-stroke: 0.01em transparent;
+}
+
+/* Image watermark quality improvements */
+.watermark-content img {
+    image-rendering: high-quality;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -ms-interpolation-mode: bicubic;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
 * {
     margin: 0;
     padding: 0;

@@ -302,52 +302,35 @@ class TemplateManager {
                 return { isValid: false, errors };
             }
 
-            if (!settings.type || !['text', 'image', 'combined'].includes(settings.type)) {
-                errors.push('Invalid watermark type');
+            // Check if this is the new multi-watermark format (version 2.0)
+            if (settings.version === '2.0' && settings.watermarks) {
+                // Validate multi-watermark format
+                if (!Array.isArray(settings.watermarks)) {
+                    errors.push('Watermarks must be an array');
+                    return { isValid: false, errors };
+                }
+
+                if (settings.watermarks.length === 0) {
+                    errors.push('At least one watermark is required');
+                    return { isValid: false, errors };
+                }
+
+                // Validate each watermark
+                for (let i = 0; i < settings.watermarks.length; i++) {
+                    const watermark = settings.watermarks[i];
+                    const watermarkErrors = this.validateSingleWatermark(watermark.settings, `Watermark ${i + 1}`);
+                    errors.push(...watermarkErrors);
+                }
+
+                return {
+                    isValid: errors.length === 0,
+                    errors: errors
+                };
             }
 
-            // Validate text settings
-            if (settings.text) {
-                if (typeof settings.text.size !== 'number' || settings.text.size < 8 || settings.text.size > 500) {
-                    errors.push('Invalid text size');
-                }
-                if (typeof settings.text.opacity !== 'number' || settings.text.opacity < 0 || settings.text.opacity > 100) {
-                    errors.push('Invalid text opacity');
-                }
-            }
-
-            // Validate image settings
-            if (settings.image) {
-                if (typeof settings.image.scale !== 'number' || settings.image.scale < 1 || settings.image.scale > 500) {
-                    errors.push('Invalid image scale');
-                }
-                if (typeof settings.image.opacity !== 'number' || settings.image.opacity < 0 || settings.image.opacity > 100) {
-                    errors.push('Invalid image opacity');
-                }
-            }
-
-            // Validate position settings
-            if (settings.position) {
-                const validPositions = [
-                    'top-left', 'top-center', 'top-right',
-                    'center-left', 'center', 'center-right',
-                    'bottom-left', 'bottom-center', 'bottom-right'
-                ];
-                if (!validPositions.includes(settings.position.preset)) {
-                    errors.push('Invalid position preset');
-                }
-            }
-
-            // Validate output settings
-            if (settings.output) {
-                const validFormats = ['png', 'jpeg', 'webp'];
-                if (!validFormats.includes(settings.output.format)) {
-                    errors.push('Invalid output format');
-                }
-                if (typeof settings.output.quality !== 'number' || settings.output.quality < 1 || settings.output.quality > 100) {
-                    errors.push('Invalid output quality');
-                }
-            }
+            // Legacy single watermark format validation
+            const singleErrors = this.validateSingleWatermark(settings, 'Template');
+            errors.push(...singleErrors);
 
         } catch (error) {
             errors.push('Settings validation failed');
@@ -357,6 +340,67 @@ class TemplateManager {
             isValid: errors.length === 0,
             errors: errors
         };
+    }
+
+    /**
+     * Validate a single watermark's settings
+     */
+    validateSingleWatermark(settings, context = 'Watermark') {
+        const errors = [];
+
+        if (!settings || typeof settings !== 'object') {
+            errors.push(`${context} settings must be an object`);
+            return errors;
+        }
+
+        if (!settings.type || !['text', 'image', 'combined'].includes(settings.type)) {
+            errors.push(`${context} has invalid type`);
+        }
+
+        // Validate text settings
+        if (settings.text) {
+            if (typeof settings.text.size !== 'number' || settings.text.size < 8 || settings.text.size > 500) {
+                errors.push(`${context} has invalid text size`);
+            }
+            if (typeof settings.text.opacity !== 'number' || settings.text.opacity < 0 || settings.text.opacity > 100) {
+                errors.push(`${context} has invalid text opacity`);
+            }
+        }
+
+        // Validate image settings
+        if (settings.image) {
+            if (typeof settings.image.scale !== 'number' || settings.image.scale < 1 || settings.image.scale > 500) {
+                errors.push(`${context} has invalid image scale`);
+            }
+            if (typeof settings.image.opacity !== 'number' || settings.image.opacity < 0 || settings.image.opacity > 100) {
+                errors.push(`${context} has invalid image opacity`);
+            }
+        }
+
+        // Validate position settings
+        if (settings.position) {
+            const validPositions = [
+                'top-left', 'top-center', 'top-right',
+                'center-left', 'center', 'center-right',
+                'bottom-left', 'bottom-center', 'bottom-right'
+            ];
+            if (!validPositions.includes(settings.position.preset)) {
+                errors.push(`${context} has invalid position preset`);
+            }
+        }
+
+        // Validate output settings
+        if (settings.output) {
+            const validFormats = ['png', 'jpeg', 'webp'];
+            if (!validFormats.includes(settings.output.format)) {
+                errors.push(`${context} has invalid output format`);
+            }
+            if (typeof settings.output.quality !== 'number' || settings.output.quality < 1 || settings.output.quality > 100) {
+                errors.push(`${context} has invalid output quality`);
+            }
+        }
+
+        return errors;
     }
 
     /**

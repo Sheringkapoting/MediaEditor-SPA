@@ -12,6 +12,67 @@ class ImageProcessor {
     }
 
     /**
+     * Load image from data URL
+     */
+    async loadImageFromDataURL(dataUrl) {
+        return new Promise((resolve, reject) => {
+            try {
+                if (!dataUrl || typeof dataUrl !== 'string') {
+                    throw new Error('Invalid data URL provided');
+                }
+
+                const img = new Image();
+                
+                img.onload = () => {
+                    try {
+                        // Validate image dimensions
+                        if (img.width > 8000 || img.height > 8000) {
+                            throw new Error(`Image dimensions too large: ${img.width}×${img.height}. Maximum: 8000×8000`);
+                        }
+
+                        if (img.width < 1 || img.height < 1) {
+                            throw new Error('Invalid image dimensions');
+                        }
+
+                        const imageData = {
+                            src: dataUrl,
+                            width: img.width,
+                            height: img.height,
+                            element: img,
+                            type: this.getTypeFromDataURL(dataUrl)
+                        };
+
+                        resolve(imageData);
+                    } catch (error) {
+                        reject(new Error(`Image validation failed: ${error.message}`));
+                    }
+                };
+
+                img.onerror = () => {
+                    reject(new Error('Failed to load image from data URL. The data may be corrupted.'));
+                };
+
+                img.src = dataUrl;
+
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    /**
+     * Get MIME type from data URL
+     */
+    getTypeFromDataURL(dataUrl) {
+        try {
+            const match = dataUrl.match(/^data:([^;]+);/);
+            return match ? match[1] : 'image/png';
+        } catch (error) {
+            return 'image/png';
+        }
+    }
+
+    /**
      * Load image from file with comprehensive validation
      */
     async loadImage(file) {
