@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaEditor Pro - Professional Image & Video Editing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/media-editor.css">
+    <style>
+        /* Enhanced Interactive Watermark Styles */
+        .watermark-overlay {
+            position: absolute;
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            cursor: move;
+            user-select: none;
+            z-index: 10;
+        }
+        
+        .watermark-handle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #3b82f6;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .handle-nw { top: -7px; left: -7px; cursor: nw-resize; }
+        .handle-ne { top: -7px; right: -7px; cursor: ne-resize; }
+        .handle-sw { bottom: -7px; left: -7px; cursor: sw-resize; }
+        .handle-se { bottom: -7px; right: -7px; cursor: se-resize; }
+        .handle-rotate { 
+            top: -30px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            cursor: grab; 
+            background: #f59e0b; 
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .canvas-workspace {
+            background: #f8fafc;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Media Type Tabs */
+        .media-tab {
+            transition: all 0.3s ease;
+        }
+        
+        .media-tab.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .media-tab:not(.active):hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        /* Video specific styles */
+        .video-workspace {
+            background: #f1f5f9;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .video-timeline {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+        
+        .timeline-track {
+            background: #334155;
+            height: 40px;
+            border-radius: 4px;
+            position: relative;
+            margin: 8px 0;
+        }
+        
+        .timeline-playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef4444;
+            left: 0;
+            transition: left 0.1s ease;
+        }
+        
+        /* Multi-watermark overlay styles */
+        .multi-watermark-overlay {
+            position: absolute;
+            border: 2px dashed #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            cursor: move;
+            user-select: none;
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+        
+        .multi-watermark-overlay.selected {
+            border: 2px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+        }
+        
+        .multi-watermark-overlay:hover {
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-video text-blue-600 text-2xl"></i>
+                    <h1 class="text-2xl font-bold text-blue-600">MediaEditor Pro</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button id="saveTemplateBtn" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 transition-colors duration-200 space-x-2">
+                        <i class="fas fa-save"></i>
+                        <span>Save Template</span>
+                    </button>
+                    <button id="loadTemplateBtn" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 transition-colors duration-200 space-x-2">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Load Template</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Media Type Selection Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-1">
+            <div class="flex space-x-1">
+                <button id="imageTab" class="media-tab active flex-1 flex items-center justify-center space-x-3 py-4 px-6 text-lg font-semibold rounded-lg transition-all duration-300">
+                    <i class="fas fa-image text-2xl"></i>
+                    <span>Image Editor</span>
+                </button>
+                <button id="videoTab" class="media-tab flex-1 flex items-center justify-center space-x-3 py-4 px-6 text-lg font-semibold rounded-lg transition-all duration-300 text-gray-600">
+                    <i class="fas fa-video text-2xl"></i>
+                    <span>Video Editor</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Image Editor Section -->
+        <div id="imageEditor" class="media-section">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                
+                <!-- Source Panel -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
+                        <div class="p-4 border-b border-gray-200 bg-gray-50">
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-upload mr-2 text-blue-600"></i>
+                                Source Images
+                            </h2>
+                        </div>
+                        
+                        <!-- Upload Area -->
+                        <div id="imageSourceUpload" class="upload-area m-4 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-600 hover:bg-blue-50">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
+                            <p class="text-gray-600 font-medium mb-1">Import Images</p>
+                            <p class="text-xs text-gray-500">JPG, PNG, BMP, TIFF, WebP</p>
+                        </div>
+                        
+                        <!-- Hidden File Input -->
+                        <input type="file" id="imageSourceInput" multiple accept="image/*" class="hidden">
+                        
+                        <!-- Source List -->
+                        <div id="imageSourceList" class="p-4 max-h-64 overflow-y-auto">
+                            <div class="text-center text-gray-500 py-6">
+                                <i class="fas fa-images text-2xl mb-2"></i>
+                                <p class="text-sm">No images loaded</p>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 border-t border-gray-200">
+                            <button id="clearImageSourceBtn" class="w-full inline-flex items-center justify-center px-3 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700 transition-colors duration-200 space-x-2 text-sm">
+                                <i class="fas fa-trash"></i>
+                                <span>Clear All</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Preview Panel -->
+                <div class="lg:col-span-3">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                        <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-eye mr-2 text-blue-600"></i>
+                                Image Preview & Edit
+                            </h2>
+                            <div class="flex items-center space-x-2">
+                                <button id="imageZoomOutBtn" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors">
+                                    <i class="fas fa-search-minus"></i>
+                                </button>
+                                <span id="imageZoomLevel" class="text-sm text-gray-600 font-medium min-w-[50px] text-center">100%</span>
+                                <button id="imageZoomInBtn" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors">
+                                    <i class="fas fa-search-plus"></i>
+                                </button>
+                                <button id="imageFitToScreenBtn" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Canvas Area -->
+                        <div class="canvas-workspace flex items-center justify-center relative p-6" style="height: 70vh; min-height: 600px;">
+                            <div id="imageCanvasContainer" class="canvas-container relative">
+                                <canvas id="imagePreviewCanvas" class="max-w-full max-h-full rounded shadow-lg bg-white"></canvas>
+                                <!-- Interactive Watermark Overlay -->
+                                <div id="imageWatermarkOverlay" class="watermark-overlay hidden">
+                                    <div class="watermark-handle handle-nw"></div>
+                                    <div class="watermark-handle handle-ne"></div>
+                                    <div class="watermark-handle handle-sw"></div>
+                                    <div class="watermark-handle handle-se"></div>
+                                    <div class="watermark-handle handle-rotate">
+                                        <i class="fas fa-redo text-white text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Canvas Overlay -->
+                            <div id="imageCanvasOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="text-center text-gray-500">
+                                    <i class="fas fa-image text-6xl mb-4"></i>
+                                    <p class="text-xl font-medium">Import your images to get started</p>
+                                    <p class="text-sm text-gray-400 mt-2">Drag and drop or click to browse</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Loading Spinner -->
+                            <div id="imageLoadingSpinner" class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center hidden">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin text-3xl text-blue-600 mb-2"></i>
+                                    <p class="text-gray-600">Processing...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Processing Controls -->
+                        <div class="p-4 border-t border-gray-200 flex justify-center space-x-4 bg-gray-50">
+                            <button id="imagePreviewBatchBtn" class="inline-flex items-center px-6 py-3 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 transition-colors duration-200 space-x-2">
+                                <i class="fas fa-eye"></i>
+                                <span>Preview Batch</span>
+                            </button>
+                            <button id="imageProcessBatchBtn" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200 space-x-2">
+                                <i class="fas fa-magic"></i>
+                                <span>Process & Export</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div id="imageProgressContainer" class="p-4 border-t border-gray-200 bg-gray-50 hidden">
+                            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                <div id="imageProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span id="imageProgressText">Processing images...</span>
+                                <span id="imageProgressPercent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image Settings Panel -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
+                        <div class="p-4 border-b border-gray-200 bg-gray-50">
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-palette mr-2 text-blue-600"></i>
+                                Image Watermark
+                            </h2>
+                        </div>
+                        
+                        <div class="p-4">
+                            <!-- Watermark Type Tabs -->
+                            <div class="flex bg-gray-100 rounded-lg p-1 mb-6">
+                                <button class="image-tab-btn flex-1 flex items-center justify-center space-x-2 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 bg-white shadow-sm text-blue-600 font-semibold" data-type="text">
+                                    <i class="fas fa-font"></i>
+                                    <span>Text</span>
+                                </button>
+                                <button class="image-tab-btn flex-1 flex items-center justify-center space-x-2 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 text-gray-600" data-type="image">
+                                    <i class="fas fa-image"></i>
+                                    <span>Logo</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Text Settings -->
+                            <div id="imageTextSettings" class="watermark-settings space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Watermark Text</label>
+                                    <textarea id="imageWatermarkText" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 resize-vertical text-sm" rows="2" placeholder="© MediaEditor Pro 2025">© MediaEditor Pro 2025</textarea>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
+                                    <select id="imageTextFont" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="Arial">Arial</option>
+                                        <option value="Helvetica">Helvetica</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Verdana">Verdana</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Size: <span id="imageTextSizeValue" class="text-blue-600 font-semibold">48px</span></label>
+                                    <input type="range" id="imageTextSize" min="12" max="200" value="48" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                                    <input type="color" id="imageTextColor" value="#ffffff" class="w-full h-10 border border-gray-300 rounded-md cursor-pointer">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Opacity: <span id="imageTextOpacityValue" class="text-blue-600 font-semibold">80%</span></label>
+                                    <input type="range" id="imageTextOpacity" min="0" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                            
+                            <!-- Image Settings -->
+                            <div id="imageImageSettings" class="watermark-settings space-y-4 hidden">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Watermark Image</label>
+                                    <div id="imageWatermarkUpload" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-600 hover:bg-blue-50 transition-all duration-300">
+                                        <i class="fas fa-upload text-2xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-600">Upload logo/image</p>
+                                        <p class="text-xs text-gray-500">PNG, JPG, SVG supported</p>
+                                    </div>
+                                    <input type="file" id="imageWatermarkInput" accept="image/*" class="hidden">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Opacity: <span id="imageImageOpacityValue" class="text-blue-600 font-semibold">80%</span></label>
+                                    <input type="range" id="imageImageOpacity" min="0" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                            
+                            <!-- Export Settings -->
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <h3 class="text-sm font-medium text-gray-700 mb-4">Export Settings</h3>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                                        <select id="imageOutputFormat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                            <option value="png">PNG</option>
+                                            <option value="jpeg">JPEG</option>
+                                            <option value="webp">WebP</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Quality: <span id="imageOutputQualityValue" class="text-blue-600 font-semibold">95%</span></label>
+                                        <input type="range" id="imageOutputQuality" min="1" max="100" value="95" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Video Editor Section -->
+        <div id="videoEditor" class="media-section hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                
+                <!-- Video Source Panel -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
+                        <div class="p-4 border-b border-gray-200 bg-gray-50">
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-video mr-2 text-blue-600"></i>
+                                Source Videos
+                            </h2>
+                        </div>
+                        
+                        <!-- Upload Area -->
+                        <div id="videoSourceUpload" class="upload-area m-4 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-600 hover:bg-blue-50">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-3"></i>
+                            <p class="text-gray-600 font-medium mb-1">Import Videos</p>
+                            <p class="text-xs text-gray-500">MP4, WebM, AVI, MOV</p>
+                        </div>
+                        
+                        <!-- Hidden File Input -->
+                        <input type="file" id="videoSourceInput" multiple accept="video/*" class="hidden">
+                        
+                        <!-- Source List -->
+                        <div id="videoSourceList" class="p-4 max-h-64 overflow-y-auto">
+                            <div class="text-center text-gray-500 py-6">
+                                <i class="fas fa-film text-2xl mb-2"></i>
+                                <p class="text-sm">No videos loaded</p>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4 border-t border-gray-200">
+                            <button id="clearVideoSourceBtn" class="w-full inline-flex items-center justify-center px-3 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700 transition-colors duration-200 space-x-2 text-sm">
+                                <i class="fas fa-trash"></i>
+                                <span>Clear All</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Preview Panel -->
+                <div class="lg:col-span-3">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                        <div class="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-play mr-2 text-blue-600"></i>
+                                Video Preview & Edit
+                            </h2>
+                            <div class="flex items-center space-x-2">
+                                <button id="videoZoomOutBtn" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors">
+                                    <i class="fas fa-search-minus"></i>
+                                </button>
+                                <span id="videoZoomLevel" class="text-sm text-gray-600 font-medium min-w-[50px] text-center">100%</span>
+                                <button id="videoZoomInBtn" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors">
+                                    <i class="fas fa-search-plus"></i>
+                                </button>
+                                <button id="videoFitToScreenBtn" class="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded transition-colors">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Video Workspace -->
+                        <div class="video-workspace flex items-center justify-center relative p-6" style="height: 60vh; min-height: 500px;">
+                            <div id="videoCanvasContainer" class="canvas-container relative">
+                                <video id="videoPreview" class="max-w-full max-h-full rounded shadow-lg bg-black" controls>
+                                    Your browser does not support the video tag.
+                                </video>
+                                <!-- Interactive Watermark Overlay for Video -->
+                                <div id="videoWatermarkOverlay" class="watermark-overlay hidden">
+                                    <div class="watermark-handle handle-nw"></div>
+                                    <div class="watermark-handle handle-ne"></div>
+                                    <div class="watermark-handle handle-sw"></div>
+                                    <div class="watermark-handle handle-se"></div>
+                                    <div class="watermark-handle handle-rotate">
+                                        <i class="fas fa-redo text-white text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Video Canvas Overlay -->
+                            <div id="videoCanvasOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="text-center text-gray-500">
+                                    <i class="fas fa-video text-6xl mb-4"></i>
+                                    <p class="text-xl font-medium">Import your videos to get started</p>
+                                    <p class="text-sm text-gray-400 mt-2">Drag and drop or click to browse</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Video Loading Spinner -->
+                            <div id="videoLoadingSpinner" class="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center hidden">
+                                <div class="text-center">
+                                    <i class="fas fa-spinner fa-spin text-3xl text-blue-600 mb-2"></i>
+                                    <p class="text-gray-600">Processing video...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Video Timeline -->
+                        <div class="video-timeline">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-white font-medium">Timeline</h3>
+                                <div class="flex items-center space-x-2 text-white text-sm">
+                                    <span id="currentTime">00:00</span>
+                                    <span>/</span>
+                                    <span id="totalTime">00:00</span>
+                                </div>
+                            </div>
+                            <div class="timeline-track">
+                                <div class="timeline-playhead" id="playhead"></div>
+                            </div>
+                            <div class="flex items-center justify-center space-x-4 mt-4">
+                                <button id="playPauseBtn" class="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button id="stopBtn" class="p-2 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Video Processing Controls -->
+                        <div class="p-4 border-t border-gray-200 flex justify-center space-x-4 bg-gray-50">
+                            <button id="videoPreviewBatchBtn" class="inline-flex items-center px-6 py-3 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 transition-colors duration-200 space-x-2">
+                                <i class="fas fa-eye"></i>
+                                <span>Preview Batch</span>
+                            </button>
+                            <button id="videoProcessBatchBtn" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200 space-x-2">
+                                <i class="fas fa-magic"></i>
+                                <span>Process & Export</span>
+                            </button>
+                        </div>
+                        
+                        <!-- Video Progress Bar -->
+                        <div id="videoProgressContainer" class="p-4 border-t border-gray-200 bg-gray-50 hidden">
+                            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                <div id="videoProgressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span id="videoProgressText">Processing videos...</span>
+                                <span id="videoProgressPercent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Settings Panel -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 h-fit">
+                        <div class="p-4 border-b border-gray-200 bg-gray-50">
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-palette mr-2 text-blue-600"></i>
+                                Video Watermark
+                            </h2>
+                        </div>
+                        
+                        <div class="p-4">
+                            <!-- Watermark Type Tabs -->
+                            <div class="flex bg-gray-100 rounded-lg p-1 mb-6">
+                                <button class="video-tab-btn flex-1 flex items-center justify-center space-x-2 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 bg-white shadow-sm text-blue-600 font-semibold" data-type="text">
+                                    <i class="fas fa-font"></i>
+                                    <span>Text</span>
+                                </button>
+                                <button class="video-tab-btn flex-1 flex items-center justify-center space-x-2 py-2 px-3 text-sm font-medium rounded-md transition-all duration-200 text-gray-600" data-type="image">
+                                    <i class="fas fa-image"></i>
+                                    <span>Logo</span>
+                                </button>
+                            </div>
+                            
+                            <!-- Video Text Settings -->
+                            <div id="videoTextSettings" class="watermark-settings space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Watermark Text</label>
+                                    <textarea id="videoWatermarkText" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 resize-vertical text-sm" rows="2" placeholder="© MediaEditor Pro 2025">© MediaEditor Pro 2025</textarea>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Font Family</label>
+                                    <select id="videoTextFont" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="Arial">Arial</option>
+                                        <option value="Helvetica">Helvetica</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Georgia">Georgia</option>
+                                        <option value="Verdana">Verdana</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Size: <span id="videoTextSizeValue" class="text-blue-600 font-semibold">48px</span></label>
+                                    <input type="range" id="videoTextSize" min="12" max="200" value="48" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                                    <input type="color" id="videoTextColor" value="#ffffff" class="w-full h-10 border border-gray-300 rounded-md cursor-pointer">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Opacity: <span id="videoTextOpacityValue" class="text-blue-600 font-semibold">80%</span></label>
+                                    <input type="range" id="videoTextOpacity" min="0" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                            
+                            <!-- Video Image Settings -->
+                            <div id="videoImageSettings" class="watermark-settings space-y-4 hidden">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Watermark Image</label>
+                                    <div id="videoWatermarkUpload" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-blue-600 hover:bg-blue-50 transition-all duration-300">
+                                        <i class="fas fa-upload text-2xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-600">Upload logo/image</p>
+                                        <p class="text-xs text-gray-500">PNG, JPG, SVG supported</p>
+                                    </div>
+                                    <input type="file" id="videoWatermarkInput" accept="image/*" class="hidden">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Opacity: <span id="videoImageOpacityValue" class="text-blue-600 font-semibold">80%</span></label>
+                                    <input type="range" id="videoImageOpacity" min="0" max="100" value="80" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                            
+                            <!-- Video Export Settings -->
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <h3 class="text-sm font-medium text-gray-700 mb-4">Export Settings</h3>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                                        <select id="videoOutputFormat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                            <option value="mp4">MP4</option>
+                                            <option value="webm">WebM</option>
+                                            <option value="avi">AVI</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Quality: <span id="videoOutputQualityValue" class="text-blue-600 font-semibold">95%</span></label>
+                                        <input type="range" id="videoOutputQuality" min="1" max="100" value="95" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2 max-w-sm"></div>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg max-w-6xl w-full mx-4 max-h-screen overflow-hidden">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">Export Results</h3>
+                <button id="closeResultsBtn" class="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div id="resultsGrid" class="p-4 max-h-96 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+            <div class="p-4 border-t border-gray-200 flex justify-end">
+                <button id="downloadAllBtn" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200 space-x-2">
+                    <i class="fas fa-download"></i>
+                    <span>Download All</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Modal -->
+    <div id="templateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg max-w-md w-full mx-4">
+            <div class="p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Save Template</h3>
+            </div>
+            <div class="p-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Template Name</label>
+                <input type="text" id="templateName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" placeholder="Enter template name">
+            </div>
+            <div class="p-4 border-t border-gray-200 flex justify-end space-x-2">
+                <button id="cancelTemplateBtn" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white font-medium rounded-md hover:bg-gray-700 transition-colors duration-200">Cancel</button>
+                <button id="confirmSaveTemplateBtn" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors duration-200">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/imageProcessor.js"></script>
+    <script src="js/watermarkEngine.js"></script>
+    <script src="js/batchProcessor.js"></script>
+    <script src="js/videoProcessor.js"></script>
+    <script src="js/videoBatchProcessor.js"></script>
+    <script src="js/templateManager.js"></script>
+    <script src="js/mediaEditor.js"></script>
+</body>
+</html>
